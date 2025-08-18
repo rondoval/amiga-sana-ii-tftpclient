@@ -797,6 +797,8 @@ network_setup(BPTR error_output, const struct cmd_args * args)
 	ULONG buffer_size = 1500;
 	LONG error;
 	int i;
+	int num_arp_reqs = 4;
+	int num_ip_reqs = 8;
 
 	NewList(&net_io_list);
 	net_io_list_initialized = TRUE;
@@ -1117,8 +1119,12 @@ network_setup(BPTR error_output, const struct cmd_args * args)
 
 	SHOWMSG("duplicating I/O request for ARP packets");
 
-	/* We set up four ARP read requests and start them (asynchronously). */
-	for(i = 0 ; i < 4 ; i++)
+	/* Determine number of concurrent ARP read requests (default 4). */
+	if(args->NumARPRequests != NULL && *args->NumARPRequests > 0)
+		num_arp_reqs = *args->NumARPRequests;
+
+	/* We set up the requested number of ARP read requests and start them (asynchronously). */
+	for(i = 0 ; i < num_arp_reqs ; i++)
 	{
 		read_request = duplicate_net_request(control_request, net_read_port, buffer_size);
 		if(read_request == NULL)
@@ -1136,8 +1142,12 @@ network_setup(BPTR error_output, const struct cmd_args * args)
 
 	SHOWMSG("duplicating I/O request for IP packets");
 
-	/* We set up eight IP read requests and start them (asynchronously). */
-	for(i = 0 ; i < 8 ; i++)
+	/* Determine number of concurrent IP read requests (default 8). */
+	if(args->NumIPRequests != NULL && *args->NumIPRequests > 0)
+		num_ip_reqs = *args->NumIPRequests;
+
+	/* We set up the requested number of IP read requests and start them (asynchronously). */
+	for(i = 0 ; i < num_ip_reqs ; i++)
 	{
 		read_request = duplicate_net_request(control_request, net_read_port, buffer_size);
 		if(read_request == NULL)

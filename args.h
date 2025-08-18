@@ -65,6 +65,8 @@ struct cmd_args
 	STRPTR	Source;
 	STRPTR	Destination;
 	LONG	Overwrite;
+	LONG *  NumARPRequests;     /* Optional: number of ARP read requests (default 4) */
+	LONG *  NumIPRequests;      /* Optional: number of IP read requests (default 8) */
 };
 
 /****************************************************************************/

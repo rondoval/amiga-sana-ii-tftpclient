@@ -42,4 +42,4 @@
 /****************************************************************************/
 
 /* The command template used for processing the command line parameters. */
-const char cmd_template[] = "DEVICE/K,UNIT/N,QUIET/S,VERBOSE/S,LOCALADDRESS/K,REMOTEPORT/N/K,FILE=FROM/A,TO/A,OVERWRITE/S";
+const char cmd_template[] = "DEVICE/K,UNIT/N,QUIET/S,VERBOSE/S,LOCALADDRESS/K,REMOTEPORT/N/K,FILE=FROM/A,TO/A,OVERWRITE/S,ARPREQ/N,IPREQ/N";
