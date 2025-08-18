@@ -7,7 +7,7 @@
  * The "trivial file transfer protocol" is anything but trivial
  * to implement...
  *
- * Copyright © 2016-2018 by Olaf Barthel <obarthel at gmx dot net>
+ * Copyright ï¿½ 2016-2018 by Olaf Barthel <obarthel at gmx dot net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -83,8 +83,36 @@ extern struct Library * SysBase;
 
 /****************************************************************************/
 
+#if defined (PISTORM)
+
+/****************************************************************************/
+
+static void ASM
+kputc(REG(d0, UBYTE c))
+{
+	if(c != '\0')
+		*(UBYTE*)0xdeadbeef = c;
+}
+
+void kprintf(char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	RawDoFmt(fmt, args, (APTR) kputc, NULL);
+	va_end(args);
+}
+
+/****************************************************************************/
+
+#else
+
+/****************************************************************************/
+
 extern void __stdargs kprintf(const char *,...);
 extern void __stdargs kputc(char c);
+
+/****************************************************************************/
+
+#endif /* PISTORM */
 
 /****************************************************************************/
 
