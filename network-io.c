@@ -7,7 +7,7 @@
  * The "trivial file transfer protocol" is anything but trivial
  * to implement...
  *
- * Copyright © 2016 by Olaf Barthel <obarthel at gmx dot net>
+ * Copyright Â© 2016 by Olaf Barthel <obarthel at gmx dot net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -96,6 +96,48 @@ ULONG remote_ipv4_address;
 
 /****************************************************************************/
 
+/* Issue a synchronous control (S2_*) command. Caller must set any of
+ * ios2_Data, ios2_DataLength, ios2_StatData beforehand. Returns io_Error.
+ */
+static BYTE
+send_control_request(UWORD command)
+{
+	ASSERT(control_request != NULL);
+	ASSERT( NOT control_request->nior_InUse );
+
+	control_request->nior_IOS2.ios2_Req.io_Message.mn_Node.ln_Type = NT_UNKNOWN;
+	control_request->nior_IOS2.ios2_Req.io_Flags = 0;
+	control_request->nior_IOS2.ios2_Req.io_Error = 0;
+	control_request->nior_IOS2.ios2_WireError = 0;
+	control_request->nior_IOS2.ios2_Req.io_Command = command;
+
+	return DoIO((struct IORequest *)control_request);
+}
+
+/* Prepare and send a write request. Returns io_Error.
+ */
+BYTE
+send_net_io_write_request(UWORD command, UWORD ether_type, ULONG len)
+{
+	ASSERT(write_request != NULL);
+	ASSERT( NOT write_request->nior_InUse );
+
+	/* Reset prior state */
+	write_request->nior_IOS2.ios2_Req.io_Message.mn_Node.ln_Type = NT_UNKNOWN;
+	write_request->nior_IOS2.ios2_Req.io_Flags = 0;
+	write_request->nior_IOS2.ios2_Req.io_Error = 0;
+	write_request->nior_IOS2.ios2_WireError = 0;
+
+	write_request->nior_IOS2.ios2_Req.io_Command = command;
+	write_request->nior_IOS2.ios2_PacketType = ether_type;
+	write_request->nior_Type = ether_type;
+	write_request->nior_IOS2.ios2_Data = write_request;
+	write_request->nior_IOS2.ios2_DataLength = len;
+	write_request->nior_InUse = TRUE;
+
+	return DoIO((struct IORequest *)write_request);
+}
+
 /* Start a SANA-II read request command, to be picked up later when
  * it completes execution.
  */
@@ -113,11 +155,17 @@ send_net_io_read_request(struct NetIORequest * nior,UWORD type)
 	ASSERT( NOT nior->nior_InUse );
 	ASSERT( nior->nior_Link.mln_Succ != NULL && nior->nior_Link.mln_Pred != NULL );
 
-	nior->nior_Type						= type;
+	/* Reset prior state */
+	nior->nior_IOS2.ios2_Req.io_Message.mn_Node.ln_Type = NT_UNKNOWN;
+	nior->nior_IOS2.ios2_Req.io_Flags = 0;
+	nior->nior_IOS2.ios2_Req.io_Error = 0;
+	nior->nior_IOS2.ios2_WireError = 0;
+
+	nior->nior_Type					= type;
 	nior->nior_IOS2.ios2_PacketType		= nior->nior_Type;
 	nior->nior_IOS2.ios2_Req.io_Command	= CMD_READ;
 	nior->nior_IOS2.ios2_Data			= nior;
-	nior->nior_InUse					= TRUE;
+	nior->nior_InUse				= TRUE;
 
 	SendIO((struct IORequest *)nior);
 
@@ -254,9 +302,6 @@ duplicate_net_request(
 	/* Make a copy of the SANA-II I/O request, and nothing else (structure copy). */
 	nior->nior_IOS2 = orig->nior_IOS2;
 
-	/* Make sure that this is safe to use with CheckIO() and WaitIO(). */
-	nior->nior_IOS2.ios2_Req.io_Message.mn_Node.ln_Type = NT_REPLYMSG;
-
 	/* Replace the reply port if needed. */
 	if(reply_port != NULL)
 		nior->nior_IOS2.ios2_Req.io_Message.mn_ReplyPort = reply_port;
@@ -298,7 +343,6 @@ create_net_request(struct MsgPort * reply_port)
 	/* Keep track of this network I/O request, making it easier to clean up later. */
 	AddTail(&net_io_list,(struct Node *)&nior->nior_Link);
 
-	nior->nior_IOS2.ios2_Req.io_Message.mn_Node.ln_Type	= NT_REPLYMSG;
 	nior->nior_IOS2.ios2_Req.io_Message.mn_Length		= sizeof(nior->nior_IOS2);
 	nior->nior_IOS2.ios2_Req.io_Message.mn_ReplyPort	= reply_port;
 
@@ -871,20 +915,17 @@ network_setup(BPTR error_output, const struct cmd_args * args)
 	sana2_hook.s2h_Hook.h_Entry	= (HOOKFUNC)sana2_hook_function;
 	sana2_hook.s2h_Methods		= hook_capabilities;
 
-	control_request->nior_IOS2.ios2_Req.io_Command	= S2_SANA2HOOK;
 	control_request->nior_IOS2.ios2_Data			= &sana2_hook;
 	control_request->nior_IOS2.ios2_DataLength		= sizeof(sana2_hook);
 
 	SHOWMSG("setting up optional S2_SANA2HOOK");
 
-	DoIO((struct IORequest *)control_request);
+	send_control_request(S2_SANA2HOOK);
 
 	/* Find out which type of networking hardware the driver is responsible
 	 * for, and how large the transmission buffer may be.
 	 */
-	control_request->nior_IOS2.ios2_Req.io_Command	= S2_DEVICEQUERY;
 	control_request->nior_IOS2.ios2_StatData		= &s2dq;
-	control_request->nior_IOS2.ios2_WireError		= 0;
 
 	memset(&s2dq,0,sizeof(s2dq));
 
@@ -899,7 +940,7 @@ network_setup(BPTR error_output, const struct cmd_args * args)
 
 	SHOWMSG("performing S2_DEVICEQUERY");
 
-	error = DoIO((struct IORequest *)control_request);
+	error = send_control_request(S2_DEVICEQUERY);
 	if(error != OK)
 	{
 		error_text = get_io_error_text(error);
@@ -966,15 +1007,13 @@ network_setup(BPTR error_output, const struct cmd_args * args)
 	}
 
 	/* Find out which Ethernet address this device currently uses. */
-	control_request->nior_IOS2.ios2_Req.io_Command	= S2_GETSTATIONADDRESS;
 	control_request->nior_IOS2.ios2_StatData		= NULL;
-	control_request->nior_IOS2.ios2_WireError		= 0;
 
 	ASSERT( NOT control_request->nior_InUse );
 
 	SHOWMSG("performing S2_GETSTATIONADDRESS");
 
-	error = DoIO((struct IORequest *)control_request);
+	error = send_control_request(S2_GETSTATIONADDRESS);
 	if(error != OK)
 	{
 		error_text = get_io_error_text(error);
@@ -1015,8 +1054,6 @@ network_setup(BPTR error_output, const struct cmd_args * args)
 	/* Set the device's Ethernet address to the default, unless it has
 	 * already been taken care of.
 	 */
-	control_request->nior_IOS2.ios2_Req.io_Command	= S2_CONFIGINTERFACE;
-	control_request->nior_IOS2.ios2_WireError		= 0;
 
 	memmove(control_request->nior_IOS2.ios2_SrcAddr, control_request->nior_IOS2.ios2_DstAddr, SANA2_MAX_ADDR_BYTES);
 
@@ -1024,7 +1061,7 @@ network_setup(BPTR error_output, const struct cmd_args * args)
 
 	SHOWMSG("performing S2_CONFIGINTERFACE");
 
-	error = DoIO((struct IORequest *)control_request);
+	error = send_control_request(S2_CONFIGINTERFACE);
 	if(error != OK && control_request->nior_IOS2.ios2_WireError != S2WERR_IS_CONFIGURED)
 	{
 		error_text = get_io_error_text(error);

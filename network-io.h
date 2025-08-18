@@ -7,7 +7,7 @@
  * The "trivial file transfer protocol" is anything but trivial
  * to implement...
  *
- * Copyright © 2016 by Olaf Barthel <obarthel at gmx dot net>
+ * Copyright Â© 2016 by Olaf Barthel <obarthel at gmx dot net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -101,6 +101,7 @@ extern ULONG remote_ipv4_address;
 /****************************************************************************/
 
 extern void send_net_io_read_request(struct NetIORequest * nior,UWORD type);
+extern BYTE send_net_io_write_request(UWORD command, UWORD ether_type, ULONG len);
 extern void network_cleanup(void);
 extern int network_setup(BPTR error_output, const struct cmd_args * args);
 
