@@ -7,7 +7,7 @@
  * The "trivial file transfer protocol" is anything
  * but trivial to implement...
  *
- * Copyright © 2016 by Olaf Barthel <obarthel at gmx dot net>
+ * Copyright Â© 2016 by Olaf Barthel <obarthel at gmx dot net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,4 +42,4 @@
 /****************************************************************************/
 
 /* The command template used for processing the command line parameters. */
-const char cmd_template[] = "DEVICE/K,UNIT/N,QUIET/S,VERBOSE/S,LOCALADDRESS/K,REMOTEPORT/N/K,FILE=FROM/A,TO/A,OVERWRITE/S";
+const char cmd_template[] = "DEVICE/K,UNIT/N,QUIET/S,VERBOSE/S,LOCALADDRESS/K,REMOTEPORT/N/K,FILE=FROM/A,TO/A,OVERWRITE/S,ARPREQ/N,IPREQ/N";

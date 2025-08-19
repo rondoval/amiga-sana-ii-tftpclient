@@ -7,7 +7,7 @@
  * The "trivial file transfer protocol" is anything but trivial
  * to implement...
  *
- * Copyright © 2016 by Olaf Barthel <obarthel at gmx dot net>
+ * Copyright Â© 2016 by Olaf Barthel <obarthel at gmx dot net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -395,12 +395,6 @@ send_udp(int client_port_number,int server_port_number,const void * data,int dat
 
 	ASSERT( len <= write_request->nior_BufferSize );
 
-	write_request->nior_IOS2.ios2_Req.io_Command	= CMD_WRITE;
-	write_request->nior_IOS2.ios2_WireError			= 0;
-	write_request->nior_IOS2.ios2_PacketType		= ETHERTYPE_IP;
-	write_request->nior_IOS2.ios2_Data				= write_request;
-	write_request->nior_IOS2.ios2_DataLength		= len;
-
 	memmove(write_request->nior_IOS2.ios2_DstAddr,remote_ethernet_address,sizeof(remote_ethernet_address));
 
 	#if defined(TESTING)
@@ -429,9 +423,7 @@ send_udp(int client_port_number,int server_port_number,const void * data,int dat
 	}
 	#endif /* TESTING */
 
-	ASSERT( NOT write_request->nior_InUse );
-
-	error = DoIO((struct IORequest *)write_request);
+	error = send_net_io_write_request(CMD_WRITE, ETHERTYPE_IP, len);
 
 	RETURN(error);
 	return(error);

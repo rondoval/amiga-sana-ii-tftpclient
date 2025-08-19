@@ -7,7 +7,7 @@
  * The "trivial file transfer protocol" is anything but trivial
  * to implement...
  *
- * Copyright © 2016 by Olaf Barthel <obarthel at gmx dot net>
+ * Copyright Â© 2016 by Olaf Barthel <obarthel at gmx dot net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -90,12 +90,6 @@ send_arp_response(ULONG target_ipv4_address,const UBYTE * target_ethernet_addres
 	memmove(ahe->ahe_TargetHardwareAddress,target_ethernet_address,sizeof(ahe->ahe_TargetHardwareAddress));
 	ahe->ahe_TargetProtocolAddress = target_ipv4_address;
 
-	write_request->nior_IOS2.ios2_Req.io_Command	= CMD_WRITE;
-	write_request->nior_IOS2.ios2_WireError			= 0;
-	write_request->nior_IOS2.ios2_PacketType		= ETHERTYPE_ARP;
-	write_request->nior_IOS2.ios2_Data				= write_request;
-	write_request->nior_IOS2.ios2_DataLength		= sizeof(*ahe);
-
 	memmove(write_request->nior_IOS2.ios2_DstAddr,ahe->ahe_TargetHardwareAddress,6);
 
 	/* If the test mode is built into this command, the following lines will
@@ -128,9 +122,7 @@ send_arp_response(ULONG target_ipv4_address,const UBYTE * target_ethernet_addres
 	}
 	#endif /* TESTING */
 
-	ASSERT( NOT write_request->nior_InUse );
-
-	error = DoIO((struct IORequest *)write_request);
+	error = send_net_io_write_request(CMD_WRITE, ETHERTYPE_ARP, sizeof(*ahe));
 
 	RETURN(error);
 	return(error);
@@ -170,11 +162,6 @@ broadcast_arp_query(ULONG target_ipv4_address)
 	memset(ahe->ahe_TargetHardwareAddress,0xff,sizeof(ahe->ahe_TargetHardwareAddress));
 	ahe->ahe_TargetProtocolAddress = remote_ipv4_address;
 
-	write_request->nior_IOS2.ios2_Req.io_Command	= S2_BROADCAST;
-	write_request->nior_IOS2.ios2_WireError			= 0;
-	write_request->nior_IOS2.ios2_PacketType		= ETHERTYPE_ARP;
-	write_request->nior_IOS2.ios2_Data				= write_request;
-	write_request->nior_IOS2.ios2_DataLength		= sizeof(*ahe);
 
 	/* If the test mode is built into this command, the following lines will
 	 * randomly drop packets instead of transmitting them, or corrupt their
@@ -207,9 +194,7 @@ broadcast_arp_query(ULONG target_ipv4_address)
 	}
 	#endif /* TESTING */
 
-	ASSERT( NOT write_request->nior_InUse );
-
-	error = DoIO((struct IORequest *)write_request);
+	error = send_net_io_write_request(S2_BROADCAST, ETHERTYPE_ARP, sizeof(*ahe));
 
 	RETURN(error);
 	return(error);

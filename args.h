@@ -7,7 +7,7 @@
  * The "trivial file transfer protocol" is anything but trivial
  * to implement...
  *
- * Copyright © 2016 by Olaf Barthel <obarthel at gmx dot net>
+ * Copyright Â© 2016 by Olaf Barthel <obarthel at gmx dot net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,6 +65,8 @@ struct cmd_args
 	STRPTR	Source;
 	STRPTR	Destination;
 	LONG	Overwrite;
+	LONG *  NumARPRequests;     /* Optional: number of ARP read requests (default 4) */
+	LONG *  NumIPRequests;      /* Optional: number of IP read requests (default 8) */
 };
 
 /****************************************************************************/
